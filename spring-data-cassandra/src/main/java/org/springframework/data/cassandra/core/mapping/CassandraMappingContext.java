@@ -80,6 +80,8 @@ public class CassandraMappingContext
 
 	private Mapping mapping = new Mapping();
 
+	private NamingStrategy namingStrategy = NamingStrategy.INSTANCE;
+
 	private TupleTypeFactory tupleTypeFactory = SimpleTupleTypeFactory.DEFAULT;
 
 	private @Nullable UserTypeResolver userTypeResolver;
@@ -253,6 +255,19 @@ public class CassandraMappingContext
 	}
 
 	/**
+	 * Set the {@link NamingStrategy} to use.
+	 *
+	 * @param namingStrategy must not be {@literal null}.
+	 * @since 3.0
+	 */
+	public void setNamingStrategy(NamingStrategy namingStrategy) {
+
+		Assert.notNull(namingStrategy, "NamingStrategy must not be null");
+
+		this.namingStrategy = namingStrategy;
+	}
+
+	/**
 	 * Sets the {@link TupleTypeFactory}.
 	 *
 	 * @param tupleTypeFactory must not be {@literal null}.
@@ -354,6 +369,7 @@ public class CassandraMappingContext
 				: isTuple(typeInformation) ? new BasicCassandraPersistentTupleEntity<>(typeInformation, getTupleTypeFactory())
 						: new BasicCassandraPersistentEntity<>(typeInformation, getVerifier());
 
+		entity.setNamingStrategy(this.namingStrategy);
 		Optional.ofNullable(this.applicationContext).ifPresent(entity::setApplicationContext);
 
 		return entity;
@@ -388,6 +404,7 @@ public class CassandraMappingContext
 				? new BasicCassandraPersistentTupleProperty(property, owner, simpleTypeHolder, getUserTypeResolver())
 				: new BasicCassandraPersistentProperty(property, owner, simpleTypeHolder, getUserTypeResolver());
 
+		persistentProperty.setNamingStrategy(this.namingStrategy);
 		Optional.ofNullable(this.applicationContext).ifPresent(persistentProperty::setApplicationContext);
 
 		return persistentProperty;

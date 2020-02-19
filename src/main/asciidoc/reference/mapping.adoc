@@ -144,6 +144,18 @@ For example, `com.bigbank.SavingsAccount` maps to a table named `savingsaccount`
 tables fields.
 * The properties of an object are used to convert to and from properties in the table.
 
+You can adjust conventions by configuring a `NamingStrategy` on `CassandraMappingContext`.
+Naming strategy objects implement the convention by which a table, column or user-defined type is derived from an entity class and from an actual property.
+
+The following example shows how to configure a `NamingStrategy`:
+
+.Configuring `NamingStrategy` on `CassandraMappingContext`
+====
+[source,java]
+----
+include::../{example-root}/NamingStrategyConfiguration.java[tags=method]
+----
+====
 
 [[mapping-configuration]]
 === Mapping Configuration
@@ -171,7 +183,6 @@ You can add additional converters to the `MappingCassandraConverter` by overridi
 
 NOTE: `AbstractCassandraConfiguration` creates a `CassandraTemplate` instance and registers it with the container
 under the name of `cassandraTemplate`.
-
 
 [[mapping.usage]]
 == Metadata-based Mapping
@@ -206,7 +217,6 @@ public class Person {
 
 IMPORTANT: The `@Id` annotation tells the mapper which property you want to use for the Cassandra primary key.
 Composite primary keys can require a slightly different data model.
-
 
 [[cassandra-template.id-handling]]
 === Working with Primary Keys

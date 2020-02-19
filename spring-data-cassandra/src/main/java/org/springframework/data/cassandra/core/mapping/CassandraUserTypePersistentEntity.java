@@ -67,7 +67,7 @@ public class CassandraUserTypePersistentEntity<T> extends BasicCassandraPersiste
 			return determineName(annotation.value(), annotation.forceQuote());
 		}
 
-		return super.determineTableName();
+		return IdentifierFactory.create(getNamingStrategy().getUserDefinedTypeName(this), false);
 	}
 
 	/* (non-Javadoc)
