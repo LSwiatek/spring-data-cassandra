@@ -27,8 +27,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Consumer;
 
+import lombok.Value;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -62,7 +64,9 @@ public class CustomConversionIntegrationTests extends AbstractKeyspaceCreatingIn
 		cassandraOperations = new CassandraTemplate(session, converter);
 
 		SchemaTestUtils.potentiallyCreateTableFor(Employee.class, cassandraOperations);
+		SchemaTestUtils.potentiallyCreateTableFor(Department.class, cassandraOperations);
 		SchemaTestUtils.truncate(Employee.class, cassandraOperations);
+		SchemaTestUtils.truncate(Department.class, cassandraOperations);
 	}
 
 	@Test // DATACASS-296
@@ -184,11 +188,40 @@ public class CustomConversionIntegrationTests extends AbstractKeyspaceCreatingIn
 		assertThat(employee.getPeople()).extracting(Person::getFirstname).contains("Apu");
 	}
 
+	@Test
+	public void shouldApplyCustomConversionsForIdFieldOnInsert() {
+		Department entity = new Department();
+		UUID id = UUID.randomUUID();
+		entity.setId(new DepartmentId(id));
+		entity.setName("Department of Redundancy Department");
+		cassandraOperations.insert(entity);
+
+		Row row = cassandraOperations.selectOne("SELECT id, name FROM department", Row.class);
+
+		assertThat(row).isNotNull();
+		assertThat(row.getUuid("id")).isEqualTo(id);
+		assertThat(row.getString("name")).isEqualTo("Department of Redundancy Department");
+	}
+
+	@Test
+	public void shouldApplyCustomConversionsForIdFieldOnFind() {
+		UUID id = UUID.randomUUID();
+		cassandraOperations.getCqlOperations().execute("INSERT INTO department (id, name) VALUES (?, 'Department of Redundancy Department')", id);
+
+		Department dep = cassandraOperations.selectOneById(new DepartmentId(id), Department.class);
+
+		assertThat(dep).isNotNull();
+		assertThat(dep.getId()).isEqualTo(new DepartmentId(id));
+		assertThat(dep.getName()).isEqualTo("Department of Redundancy Department");
+	}
+
 	private static MappingCassandraConverter createConverter() {
 
 		return createConverter(converters -> {
 			converters.add(new PersonReadConverter());
 			converters.add(new PersonWriteConverter());
+			converters.add(new DepartmentIdReadConverter());
+			converters.add(new DepartmentIdWriteConverter());
 
 		});
 	}
@@ -209,6 +242,34 @@ public class CustomConversionIntegrationTests extends AbstractKeyspaceCreatingIn
 		converter.setCustomConversions(customConversions);
 		converter.afterPropertiesSet();
 		return converter;
+	}
+
+	@Data
+	@Table
+	static class Department {
+		@Id
+		DepartmentId id;
+		String name;
+	}
+	@Value
+	static class DepartmentId {
+		UUID id;
+	}
+
+	static class DepartmentIdWriteConverter implements Converter<DepartmentId, UUID> {
+
+		@Override
+		public UUID convert(final DepartmentId departmentId) {
+			return departmentId.getId();
+		}
+	}
+
+	static class DepartmentIdReadConverter implements Converter<UUID, DepartmentId> {
+
+		@Override
+		public DepartmentId convert(final UUID uuid) {
+			return new DepartmentId(uuid);
+		}
 	}
 
 	@Data
